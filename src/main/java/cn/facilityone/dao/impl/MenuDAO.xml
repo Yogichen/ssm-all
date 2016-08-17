@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.facilityone.dao.MenuDAO">
+
+  <resultMap id="BaseResultMap" type="cn.facilityone.entity.Menu">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="link" jdbcType="VARCHAR" property="link" />
+    <result column="order_number" jdbcType="INTEGER" property="orderNumber" />
+    <result column="visible" jdbcType="BIT" property="visible" />
+    <result column="icon_class" jdbcType="VARCHAR" property="iconClass"/>
+  </resultMap>
+
+  <select id="findMenuByUserName" resultMap="BaseResultMap">
+    SELECT
+        sys_menu.*
+    FROM
+        sys_menu
+    INNER JOIN sys_role_menu ON sys_menu.id = sys_role_menu.menu_id
+    INNER JOIN sys_role ON sys_role.id = sys_role_menu.role_id
+    INNER JOIN sys_user ON sys_role.id = sys_user.role_id
+    WHERE
+	sys_user.user_name = #{userName}
+  </select>
+
+</mapper>

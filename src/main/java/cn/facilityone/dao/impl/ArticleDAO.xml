@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.facilityone.dao.ArticleDAO">
+
+  <cache type="org.mybatis.caches.ehcache.LoggingEhcache" ></cache>
+
+  <resultMap id="BaseResultMap" type="cn.facilityone.entity.Article">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="title" jdbcType="VARCHAR" property="title" />
+    <result column="category_id" jdbcType="BIGINT" property="categoryId" />
+    <result column="introduce" jdbcType="VARCHAR" property="introduce" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="create_date" jdbcType="TIMESTAMP" property="createDate"/>
+    <result column="modified_date" jdbcType="TIMESTAMP" property="modifiedDate" />
+    <result column="plain_text" jdbcType="LONGVARCHAR" property="plainText" />
+    <result column="full_html" jdbcType="LONGVARCHAR" property="fullHtml" />
+    <result column="status" jdbcType="VARCHAR" property="status" />
+    <result column="sort_order" jdbcType="INTEGER" property="sortOrder" />
+  </resultMap>
+
+  <resultMap id="categoryResultMap" type="cn.facilityone.entity.Category">
+    <id column="category_id" property="id" jdbcType="BIGINT"/>
+    <result column="category_name" property="name" jdbcType="VARCHAR"/>
+  </resultMap>
+
+  <resultMap id="BaseWithCategoryResultMap" type="cn.facilityone.entity.Article" extends="BaseResultMap">
+    <association property="category" javaType="cn.facilityone.entity.Category" resultMap="categoryResultMap"/>
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, title, introduce, category_id, created_by, create_date, modified_date, plain_text, full_html, status, sort_order
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from article
+    where id = #{id}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from article
+    where id = #{id}
+  </delete>
+
+  <insert id="insert" parameterType="cn.facilityone.entity.Article">
+    insert into article (id, title, category_id, introduce, created_by, create_date, modified_date, status, plain_text,
+      full_html, sort_order)
+    values (#{id}, #{title}, #{categoryId}, #{introduce}, #{createdBy}, #{createDate}, #{modifiedDate}, 1,
+      #{plainText}, #{fullHtml}, #{sortOrder})
+  </insert>
+
+  <update id="updateByPrimaryKey" parameterType="cn.facilityone.entity.Article">
+    update article
+    <set>
+      <if test="title != null">
+        title = #{title},
+      </if>
+      <if test="fullHtml">
+        full_html = #{fullHtml},
+      </if>
+      <if test="plainText">
+        plain_text = #{plainText},
+      </if>
+      <if test="categoryId != null">
+        category_id = #{categoryId},
+      </if>
+      <if test="introduce != null">
+        introduce = #{introduce},
+      </if>
+      <if test="createdBy != null">
+        created_by = #{createdBy},
+      </if>
+      <if test="createDate != null">
+        create_date = #{createDate},
+      </if>
+      <if test="modifiedDate != null">
+        modified_date = #{modifiedDate},
+      </if>
+      <if test="status != null">
+        status = #{status}
+      </if>
+    </set>
+    where id = #{id}
+  </update>
+
+  <select id="findPageByCategory" resultMap="BaseWithCategoryResultMap" useCache="false">
+      SELECT
+	    article.*, category.name AS category_name
+      FROM
+          article
+      LEFT JOIN category ON article.category_id = category.id
+      WHERE 1=1
+        <if test="categoryId != null and categoryId != 0">
+          AND article.category_id = #{categoryId}
+        </if>
+        AND article.status = 1
+        ORDER BY article.sort_order
+        LIMIT #{start},#{limit}
+  </select>
+
+  <select id="count" resultType="java.lang.Integer">
+    SELECT COUNT(article.id) AS total
+    FROM
+      article
+    LEFT JOIN category ON article.category_id = category.id
+    WHERE 1=1
+    <if test="categoryId != null and categoryId != 0">
+      AND article.category_id = #{categoryId}
+    </if>
+  </select>
+
+  <update id="updateArticleStatus">
+    UPDATE article SET status = 0 WHERE  id = #{articleId}
+  </update>
+
+  <update id="updateArticleStatusByCategoryId">
+    UPDATE article SET status = 0 WHERE  category_id = #{categoryId}
+  </update>
+
+  <select id="getArticleWithCategory" resultMap="BaseWithCategoryResultMap">
+    SELECT
+        article.*,
+        category.name AS category_name
+    FROM
+        article
+    LEFT JOIN category ON category.id = article.category_id
+    WHERE article.id = #{articleId}
+  </select>
+
+  <select id="getArticlesByCategoryName" resultMap="BaseWithCategoryResultMap">
+    SELECT
+        article.id,
+        article.title,
+        category.name AS category_name
+    FROM
+        article
+    LEFT JOIN category ON category.id = article.category_id
+    WHERE
+        category.name = #{categoryName}
+  </select>
+
+  <select id="getArticlesByLikeSearch" resultMap="BaseResultMap">
+    SELECT
+        *
+    FROM
+        article
+    WHERE article.plain_text LIKE CONCAT('%',#{content},'%')
+    OR article.title LIKE CONCAT('%',#{content},'%')
+  </select>
+
+  <select id="getMaxSortOrderByCategoryId" resultType="java.lang.Integer">
+    SELECT IFNULL(MAX(sort_order), 0) FROM article WHERE category_id = #{categoryId}
+  </select>
+
+  <select id="findPreBySortOrderAndCategoryId" resultMap="BaseResultMap" useCache="false">
+    SELECT
+      *
+    FROM
+      article
+    WHERE
+      sort_order = (
+        SELECT
+          sort_order
+        FROM
+          article
+        WHERE
+          sort_order &lt; #{order}
+        AND status = 1
+        ORDER BY
+          sort_order DESC
+        LIMIT 1
+      )
+    AND category_id = #{categoryId}
+  </select>
+
+  <select id="findNextBySortOrderAndCategoryId" resultMap="BaseResultMap" useCache="false">
+    SELECT
+      *
+    FROM
+      article
+    WHERE
+      sort_order = (
+        SELECT
+          sort_order
+        FROM
+          article
+        WHERE
+          sort_order &gt; #{order}
+        AND status = 1
+        ORDER BY
+          sort_order ASC
+        LIMIT 1
+      )
+    AND category_id = #{categoryId}
+  </select>
+
+  <update id="updateSortOrder">
+    UPDATE article SET sort_order = #{order} WHERE id = #{id}
+  </update>
+</mapper>

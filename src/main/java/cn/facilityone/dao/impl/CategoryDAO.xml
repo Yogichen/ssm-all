@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.facilityone.dao.CategoryDAO">
+  <cache type="org.mybatis.caches.ehcache.LoggingEhcache" ></cache>
+  <resultMap id="BaseResultMap" type="cn.facilityone.entity.Category">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="type" jdbcType="VARCHAR" property="type" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="icon_path" jdbcType="VARCHAR" property="iconPath" />
+    <result column="create_date" jdbcType="TIMESTAMP" property="createDate" />
+    <result column="modified_date" jdbcType="TIMESTAMP" property="modifiedDate" />
+    <result column="status" jdbcType="VARCHAR" property="status" />
+    <result column="sort_order" jdbcType="INTEGER" property="sortOrder" />
+    <result column="temp" jdbcType="INTEGER" property="temp" />
+  </resultMap>
+
+  <resultMap id="ArticleResultMap" type="cn.facilityone.entity.Article">
+    <id column="article_id" jdbcType="BIGINT" property="id" />
+    <result column="article_title" jdbcType="VARCHAR" property="title" />
+    <result column="article_introduce" jdbcType="VARCHAR" property="introduce" />
+    <result column="article_author" jdbcType="VARCHAR" property="createdBy" />
+    <result column="article_create_date" jdbcType="TIMESTAMP" property="createDate" />
+    <result column="article_introduce" jdbcType="VARCHAR" property="introduce" />
+
+  </resultMap>
+
+  <resultMap id="PublishedArticleResultMap" type="cn.facilityone.entity.PublishedArticle">
+    <id column="published_article_id" jdbcType="BIGINT" property="id" />
+    <result column="published_article_title" jdbcType="VARCHAR" property="title" />
+    <result column="published_article_introduce" jdbcType="VARCHAR" property="introduce" />
+    <result column="published_article_author" jdbcType="VARCHAR" property="createdBy" />
+    <result column="published_article_create_date" jdbcType="TIMESTAMP" property="createDate" />
+    <result column="published_article_introduce" jdbcType="VARCHAR" property="introduce" />
+
+  </resultMap>
+  
+  <resultMap id="BaseWithArticles" type="cn.facilityone.entity.Category" extends="BaseResultMap">
+    <collection property="articles" ofType="cn.facilityone.entity.Article" resultMap="ArticleResultMap"/>
+  </resultMap>
+
+  <resultMap id="BaseWithPublishedArticles" type="cn.facilityone.entity.Category" extends="BaseResultMap">
+    <collection property="publishedArticles" ofType="cn.facilityone.entity.PublishedArticle" resultMap="PublishedArticleResultMap"/>
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, name, type, created_by, icon_path, create_date, modified_date, status
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from category
+    where id = #{id}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from category
+    where id = #{id}
+  </delete>
+
+  <insert id="insert" parameterType="cn.facilityone.entity.Category">
+    insert into category (id, name, type, created_by, icon_path, create_date, modified_date, status, sort_order)
+    values (#{id}, #{name}, #{type}, #{createdBy}, #{iconPath}, #{createDate}, #{modifiedDate}, 1, #{sortOrder})
+  </insert>
+
+  <update id="updateByPrimaryKey" parameterType="cn.facilityone.entity.Category">
+    update category
+    <set>
+      <if test="name != null">
+        name = #{name},
+
+      </if>
+      <if test="type != null">
+        type = #{type},
+
+      </if>
+      <if test="createdBy != null">
+        created_by = #{createdBy},
+
+      </if>
+      <if test="iconPath != null">
+        icon_path = #{iconPath},
+
+      </if>
+      <if test="createDate != null">
+        create_date = #{createDate},
+
+      </if>
+      <if test="modifiedDate != null">
+        modified_date = #{modifiedDate},
+
+      </if>
+      <if test="status != null">
+        status = #{status}
+      </if>
+    </set>
+    where id = #{id}
+  </update>
+
+  <select id="findPageByType" resultMap="BaseResultMap" useCache="false">
+    SELECT * FROM (
+      SELECT
+        category.id,
+        category.icon_path,
+        category.name,
+        category.type,
+        category.sort_order,
+        count(article.id) AS temp
+      FROM
+        category
+      LEFT JOIN article ON article.category_id = category.id
+      WHERE 1=1
+      <if test="type != null">
+        AND category.type = #{type}
+      </if>
+        AND category.status = 1
+      GROUP BY category.id
+    )cgry
+    ORDER BY cgry.sort_order
+    LIMIT #{start},#{limit}
+  </select>
+
+  <select id="count" resultType="java.lang.Integer">
+    SELECT
+      count(category.id)
+    FROM
+      category
+    WHERE 1=1
+      <if test="type != null">
+        AND category.type = #{type}
+      </if>
+    AND category.status = 1
+  </select>
+
+  <update id="updateCategoryStatus">
+    UPDATE category SET status = 0 WHERE id = #{id}
+  </update>
+
+  <select id="findAll" resultMap="BaseResultMap" useCache="false">
+    SELECT * FROM category WHERE status = 1 ORDER BY sort_order
+  </select>
+
+  <select id="findTypes" resultType="java.lang.String">
+    SELECT DISTINCT(category.type) FROM category WHERE type &lt;&gt; '常见问题'
+  </select>
+
+  <select id="findArticlesByCategoryId" resultMap="BaseWithArticles">
+    SELECT
+        category.*,
+        article.title AS article_title,
+        article.id AS article_id,
+        article.created_by AS article_author,
+        article.create_date AS article_create_date,
+        article.introduce AS article_introduce
+    FROM
+        category
+    LEFT JOIN article ON category.id = article.category_id
+    WHERE article.id IS NOT NULL
+    AND category.id = #{categoryId}
+  </select>
+
+  <select id="findPublishedArticleByCategoryId" resultMap="BaseWithPublishedArticles" useCache="false">
+    SELECT
+      category.*,
+      published_article.title AS published_article_title,
+      published_article.id AS published_article_id,
+      published_article.created_by AS published_article_author,
+      published_article.create_date AS published_article_create_date,
+      published_article.introduce AS published_article_introduce
+    FROM
+      category
+    LEFT JOIN published_article ON category.id = published_article.category_id
+    LEFT JOIN article ON published_article.temp_article_id = article.id
+    WHERE published_article.id IS NOT NULL
+    AND published_article.status = 1
+    AND category.id = #{categoryId}
+    ORDER BY article.sort_order
+  </select>
+
+  <select id="findMaxSortOrder" resultType="java.lang.Integer">
+    SELECT MAX(sort_order) AS bottom FROM category
+  </select>
+
+  <update id="updateSortOrder">
+    UPDATE category SET sort_order = #{order} WHERE id = #{id}
+  </update>
+
+  <select id="findPreBySortOrder" resultMap="BaseResultMap" useCache="false">
+    SELECT
+      *
+    FROM
+      category
+    WHERE
+    sort_order = (
+      SELECT
+        sort_order
+      FROM
+        category
+      WHERE
+        sort_order &lt; #{order}
+      AND status = 1
+      ORDER BY
+        sort_order DESC
+        LIMIT 1
+    )
+  </select>
+
+  <select id="findNextBySortOrder" resultMap="BaseResultMap" useCache="false">
+    SELECT
+      *
+    FROM
+      category
+    WHERE
+    sort_order = (
+      SELECT
+        sort_order
+      FROM
+        category
+      WHERE
+        sort_order &gt; #{order}
+      AND status = 1
+      ORDER BY
+        sort_order ASC
+      LIMIT 1
+    )
+  </select>
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.facilityone.dao.CommentDAO">
+
+  <resultMap id="BaseResultMap" type="cn.facilityone.entity.Comment">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+    <result column="pid" jdbcType="BIGINT" property="pid" />
+    <result column="published_article_id" jdbcType="BIGINT" property="publishedArticleId" />
+    <result column="comment_date" jdbcType="TIMESTAMP" property="commentDate" />
+    <result column="status" jdbcType="VARCHAR" property="status" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, content, pid, published_article_id, comment_date, status
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from comment
+    where id = #{id}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from comment
+    where id = #{id}
+  </delete>
+
+  <insert id="insert" parameterType="cn.facilityone.entity.Comment">
+    insert into comment (id, content, pid, published_article_id, comment_date, status)
+    values (#{id}, #{content}, #{pid}, #{publishedArticleId}, #{commentDate}, 1)
+  </insert>
+
+  <update id="updateByPrimaryKey" parameterType="cn.facilityone.entity.Comment">
+    update comment
+    set content = #{content},
+      pid = #{pid},
+      published_article_id = #{publishedArticleId},
+      comment_date = #{commentDate},
+      status = #{status}
+    where id = #{id}
+  </update>
+
+  <select id="sumCommentByPublishedArticleId" resultType="java.lang.Integer">
+    SELECT
+        COUNT(comment .id)
+    FROM
+        COMMENT
+    LEFT JOIN published_article ON comment.published_article_id = published_article.id
+    where published_article_id = #{publishedArticleId}
+  </select>
+</mapper>

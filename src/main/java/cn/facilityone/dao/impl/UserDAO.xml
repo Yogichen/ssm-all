@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.facilityone.dao.UserDAO">
+    <resultMap id="BaseResultMap" type="cn.facilityone.entity.User">
+        <id column="user_name" jdbcType="VARCHAR" property="userName"/>
+        <result column="password" jdbcType="VARCHAR" property="password"/>
+        <result column="real_name" jdbcType="VARCHAR" property="realName"/>
+        <result column="contact" jdbcType="VARCHAR" property="contact"/>
+        <result column="role_id" jdbcType="INTEGER" property="roleId"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+    </resultMap>
+
+    <resultMap id="RoleResultMap" type="cn.facilityone.entity.Role">
+        <id column="role_id" property="id" jdbcType="INTEGER"/>
+        <result column="role_name" property="name" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="BaseWithRoleResultMap" type="cn.facilityone.entity.User" extends="BaseResultMap">
+        <association property="role" javaType="cn.facilityone.entity.Role" resultMap="RoleResultMap"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_name, password, real_name, contact, role_id, status
+    </sql>
+
+    <insert id="insert" parameterType="cn.facilityone.entity.User">
+    insert into sys_user (user_name, password, real_name,contact, role_id, status)
+    values (#{userName}, #{password}, #{realName}, #{contact}, #{roleId}, 1)
+  </insert>
+
+    <select id="selectUserByPK" resultMap="BaseResultMap">
+        select * from sys_user where user_name = #{userName}
+    </select>
+
+    <select id="selectUserWithRoleByPk" resultMap="BaseWithRoleResultMap">
+        select sys_user.*, sys_role.name as role_name
+        from sys_user
+        left join sys_role on sys_role.id = sys_user.role_id
+        where user_name = #{userName}
+    </select>
+
+    <update id="updateByPrimaryKey" parameterType="cn.facilityone.entity.User">
+        update sys_user
+        <set>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="realName != null">
+                real_name = #{realName},
+            </if>
+            <if test="contact != null">
+                contact = #{contact},
+            </if>
+            <if test="roleId != null">
+                role_id = #{roleId},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+        </set>
+        where user_name = #{userName}
+    </update>
+
+    <select id="findByPage" resultMap="BaseWithRoleResultMap">
+        SELECT
+            sys_user.*,
+            sys_role.name AS role_name
+        FROM
+            sys_user
+        LEFT JOIN sys_role ON sys_user.role_id = sys_role.id
+        WHERE sys_user.status = 1
+        LIMIT #{start},#{limit}
+    </select>
+
+    <select id="count" resultType="java.lang.Integer">
+        SELECT
+            count(sys_user.user_name) AS total
+        FROM
+            sys_user
+        LEFT JOIN sys_role ON sys_user.role_id = sys_role.id
+        WHERE sys_user.status = 1
+    </select>
+
+    <update id="updateUserStatus">
+        UPDATE sys_user SET status = 0 WHERE user_name = #{userName}
+    </update>
+
+    <select id="selectUserByNameAndPwd" resultMap="BaseResultMap">
+        select * from sys_user where user_name = #{userName} AND password = #{password} AND status = 1
+    </select>
+</mapper>
