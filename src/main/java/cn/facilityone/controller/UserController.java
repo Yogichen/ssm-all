@@ -35,9 +35,9 @@ public class UserController {
         User user = userService.getUser(tuser.getUserName(), tuser.getPassword());
         session.setAttribute("user", user);
         if (user != null) {
-            return "redirect: /main/list";
+            return "redirect:/main/list";
         } else {
-            return "redirect: login";
+            return "redirect:login";
         }
     }
 
@@ -46,6 +46,6 @@ public class UserController {
             HttpSession session
     ) {
         session.removeAttribute("user");
-        return "redirect: /user/login";
+        return "redirect:/user/login";
     }
 }
